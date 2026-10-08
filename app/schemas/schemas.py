@@ -1,5 +1,17 @@
-from pydantic import BaseModel
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Annotated, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+Importe = Annotated[
+    Decimal,
+    Field(gt=0, max_digits=12, decimal_places=2),
+]
+
+TipoCuota = Literal["mensual", "extraordinaria", "derrama"]
+MetodoPago = Literal["transferencia", "efectivo", "domiciliacion"]
 
 # Esquema base (comparten campos comunes)
 class VecinoBase(BaseModel):
@@ -59,61 +71,81 @@ class IncidenciaResponse(IncidenciaBase):
 
     class Config:
         from_attributes = True
-class PagoBase(BaseModel):
-    vecino_id: int
-    cuota: str
-    importe: float
-    estado: str = "pendiente"
-    metodo_pago: str = "no_asignado"
-    recibo_asociado: str | None = None
-
-
-class PagoCreate(PagoBase):
-    pass
-
-
-class PagoUpdate(BaseModel):
-    cuota: str | None = None
-    importe: float | None = None
-    estado: str | None = None
-    metodo_pago: str | None = None
-    recibo_asociado: str | None = None
-
-
-class PagoResponse(PagoBase):
-    id: int
-    creado_en: datetime | None = None
-    actualizado_en: datetime | None = None
-
-    class Config:
-        from_attributes = True
-
-class CuotaBase(BaseModel):
-    tipo: str
+        
+class CuotaCreate(BaseModel):
+    concepto: str = Field(min_length=1, max_length=150)
+    tipo: TipoCuota
     descripcion: str | None = None
-    importe: float
-    estado: str = "programada"
-    fecha_emision: datetime | None = None
-    fecha_cierre: datetime | None = None
-
-
-class CuotaCreate(CuotaBase):
-    pass
+    importe: Importe
+    fecha_vencimiento: date
 
 
 class CuotaUpdate(BaseModel):
-    tipo: str | None = None
+    concepto: str = Field(min_length=1, max_length=150)
+    tipo: TipoCuota
     descripcion: str | None = None
-    importe: float | None = None
-    estado: str | None = None
+    importe: Importe
+    fecha_vencimiento: date
+
+
+class CuotaResponse(CuotaCreate):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    estado: Literal["programada", "emitida", "cerrada"]
     fecha_emision: datetime | None = None
     fecha_cierre: datetime | None = None
-
-
-class CuotaResponse(CuotaBase):
-    id: int
-    creado_en: datetime | None = None
+    creado_en: datetime
     actualizado_en: datetime | None = None
 
-    class Config:
-        from_attributes = True
+
+class CuotaEmitir(BaseModel):
+    # None: emitir para todos los vecinos activos.
+    # Una lista: emitir únicamente para esos vecinos.
+    vecino_ids: list[int] | None = Field(default=None, min_length=1)
+
+
+class CuotaVecinoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    cuota_id: int
+    vecino_id: int
+    importe: Decimal
+    creado_en: datetime
+
+
+class SaldoCuotaResponse(BaseModel):
+    cuota_vecino_id: int
+    cuota_id: int
+    vecino_id: int
+    concepto: str
+    fecha_vencimiento: date
+    importe: Decimal
+    pagado: Decimal
+    pendiente: Decimal
+    estado: Literal["pendiente", "parcial", "pagada", "atrasada"]
+
+
+class PagoCreate(BaseModel):
+    cuota_vecino_id: int = Field(gt=0)
+    importe: Importe
+    fecha_pago: date
+    metodo_pago: MetodoPago
+    observaciones: str | None = None
+
+
+class PagoUpdate(BaseModel):
+    importe: Importe
+    fecha_pago: date
+    metodo_pago: MetodoPago
+    observaciones: str | None = None
+
+
+class PagoResponse(PagoCreate):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    recibo_asociado: str | None = None
+    creado_en: datetime
+    actualizado_en: datetime | None = None
