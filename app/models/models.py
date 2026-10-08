@@ -1,7 +1,12 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Float
+from sqlalchemy import (
+    Column, Integer, String, Boolean, Date, DateTime,
+    ForeignKey, Numeric, UniqueConstraint, CheckConstraint,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from app.database import Base
+
 
 class Vecino(Base):
     __tablename__ = "vecinos"
@@ -19,64 +24,120 @@ class Vecino(Base):
 
     incidencias = relationship("Incidencia", back_populates="vecino")
 
+
 class Incidencia(Base):
     __tablename__ = "incidencias"
 
     id = Column(Integer, primary_key=True, index=True)
-
     titulo = Column(String, nullable=False)
     descripcion = Column(String, nullable=False)
-
-    estado = Column(String, default="pendiente")  # pendiente, en_progreso, resuelta
-    prioridad = Column(String, default="media")   # baja, media, alta
+    estado = Column(String, default="pendiente")
+    prioridad = Column(String, default="media")
 
     vecino_id = Column(Integer, ForeignKey("vecinos.id"), nullable=False)
     vecino = relationship("Vecino", back_populates="incidencias")
 
     creado_en = Column(DateTime(timezone=True), server_default=func.now())
     actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
-    
-class Pago(Base):
-    __tablename__ = "pagos"
 
-    id = Column(Integer, primary_key=True, index=True)
 
-    vecino_id = Column(Integer, ForeignKey("vecinos.id"), nullable=False)
-    vecino = relationship("Vecino")
-
-    cuota = Column(String, nullable=False)  # Ej: "Cuota mensual Octubre"
-    importe = Column(Float, nullable=False)
-
-    estado = Column(String, default="pendiente")  
-    # estados: pendiente, pagado, atrasado
-
-    metodo_pago = Column(String, default="no_asignado")
-    # Ej: transferencia, efectivo, domiciliación
-
-    recibo_asociado = Column(String, nullable=True)  
-    # ruta o nombre del recibo PDF
-
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
-    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
-    
 class Cuota(Base):
     __tablename__ = "cuotas"
 
+    __table_args__ = (
+        CheckConstraint("importe > 0", name="ck_cuota_importe_positivo"),
+    )
+
     id = Column(Integer, primary_key=True, index=True)
-
-    tipo = Column(String, nullable=False)  
-    # Ej: mensual, extraordinaria, derrama
-
+    concepto = Column(String(150), nullable=False)
+    tipo = Column(String(30), nullable=False)
     descripcion = Column(String, nullable=True)
+    importe = Column(Numeric(12, 2), nullable=False)
+    estado = Column(String(20), nullable=False, default="programada")
 
-    importe = Column(Float, nullable=False)
-
-    estado = Column(String, default="programada")
-    # estados: programada, emitida, cerrada
-
+    fecha_vencimiento = Column(Date, nullable=False)
     fecha_emision = Column(DateTime(timezone=True), nullable=True)
     fecha_cierre = Column(DateTime(timezone=True), nullable=True)
 
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    creado_en = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
     actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
 
+    asignaciones = relationship(
+        "CuotaVecino",
+        back_populates="cuota",
+        passive_deletes="all",
+    )
+
+
+class CuotaVecino(Base):
+    __tablename__ = "cuotas_vecinos"
+
+    __table_args__ = (
+        UniqueConstraint("cuota_id", "vecino_id", name="uq_cuota_vecino"),
+        CheckConstraint(
+            "importe > 0",
+            name="ck_cuota_vecino_importe_positivo",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    cuota_id = Column(
+        Integer,
+        ForeignKey("cuotas.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    vecino_id = Column(
+        Integer,
+        ForeignKey("vecinos.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    importe = Column(Numeric(12, 2), nullable=False)
+    creado_en = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    cuota = relationship("Cuota", back_populates="asignaciones")
+    vecino = relationship("Vecino")
+    pagos = relationship(
+        "Pago",
+        back_populates="asignacion",
+        passive_deletes="all",
+    )
+
+
+class Pago(Base):
+    __tablename__ = "pagos"
+
+    __table_args__ = (
+        CheckConstraint("importe > 0", name="ck_pago_importe_positivo"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    cuota_vecino_id = Column(
+        Integer,
+        ForeignKey("cuotas_vecinos.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    importe = Column(Numeric(12, 2), nullable=False)
+    fecha_pago = Column(Date, nullable=False)
+    metodo_pago = Column(String(30), nullable=False)
+    observaciones = Column(String, nullable=True)
+    recibo_asociado = Column(String, nullable=True)
+
+    creado_en = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
+
+    asignacion = relationship("CuotaVecino", back_populates="pagos")

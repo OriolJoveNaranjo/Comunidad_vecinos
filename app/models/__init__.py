@@ -1,2 +1,2 @@
 from app.database import Base
-from .models import Vecino, Incidencia, Pago, Cuota
+from .models import Vecino, Incidencia, Cuota, CuotaVecino, Pago
