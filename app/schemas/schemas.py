@@ -149,3 +149,30 @@ class PagoResponse(PagoCreate):
     recibo_asociado: str | None = None
     creado_en: datetime
     actualizado_en: datetime | None = None
+
+class DeudaVencidaResponse(BaseModel):
+    cuota_vecino_id: int
+    cuota_id: int
+    vecino_id: int
+    nombre: str
+    apellido: str
+    piso: str
+    puerta: str
+    concepto: str
+    fecha_vencimiento: date
+    dias_atraso: int
+    importe: Decimal
+    pagado: Decimal
+    pendiente: Decimal
+
+
+class MorosidadVecinoResponse(BaseModel):
+    vecino_id: int
+    nombre: str
+    apellido: str
+    piso: str
+    puerta: str
+    cuotas_vencidas: int
+    deuda_vencida: Decimal
+    vencimiento_mas_antiguo: date
+    dias_atraso_maximo: int
