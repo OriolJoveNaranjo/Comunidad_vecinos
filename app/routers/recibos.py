@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from fastapi.responses import Response
+from app.services.recibos_pdf import generar_recibo_pdf
 
 from app import models, schemas
 from app.database import get_db
@@ -135,3 +137,29 @@ def obtener_recibo(
         raise HTTPException(404, "Recibo no encontrado")
 
     return recibo
+@router.get(
+    "/{recibo_id}/pdf",
+    response_class=Response,
+    responses={
+        200: {
+            "description": "Justificante de pago en PDF",
+            "content": {"application/pdf": {}},
+        },
+    },
+)
+def descargar_recibo_pdf(
+    recibo_id: int,
+    db: Session = Depends(get_db),
+):
+    recibo = obtener_recibo(recibo_id, db)
+    contenido = generar_recibo_pdf(recibo)
+
+    return Response(
+        content=contenido,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{recibo.numero}.pdf"'
+            ),
+        },
+    )
