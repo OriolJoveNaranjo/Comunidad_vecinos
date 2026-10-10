@@ -141,3 +141,40 @@ class Pago(Base):
     actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
 
     asignacion = relationship("CuotaVecino", back_populates="pagos")
+class Recibo(Base):
+    __tablename__ = "recibos"
+
+    __table_args__ = (
+        CheckConstraint(
+            "importe > 0",
+            name="ck_recibo_importe_positivo",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    numero = Column(String(50), unique=True, nullable=False)
+
+    pago_id = Column(
+        Integer,
+        ForeignKey("pagos.id", ondelete="RESTRICT"),
+        unique=True,
+        nullable=False,
+    )
+
+    # Copia de los datos en el momento de emitir el recibo.
+    nombre = Column(String, nullable=False)
+    apellido = Column(String, nullable=False)
+    piso = Column(String, nullable=False)
+    puerta = Column(String, nullable=False)
+    concepto = Column(String(150), nullable=False)
+    importe = Column(Numeric(12, 2), nullable=False)
+    fecha_pago = Column(Date, nullable=False)
+    metodo_pago = Column(String(30), nullable=False)
+
+    fecha_emision = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    pago = relationship("Pago")

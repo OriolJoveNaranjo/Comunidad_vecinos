@@ -17,5 +17,7 @@ from .schemas import (
     PagoUpdate,
     PagoResponse,
     DeudaVencidaResponse,
-    MorosidadVecinoResponse
+    MorosidadVecinoResponse,
+    ReciboCreate,
+    ReciboResponse
 )

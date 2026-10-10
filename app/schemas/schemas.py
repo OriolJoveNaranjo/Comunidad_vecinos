@@ -176,3 +176,22 @@ class MorosidadVecinoResponse(BaseModel):
     deuda_vencida: Decimal
     vencimiento_mas_antiguo: date
     dias_atraso_maximo: int
+class ReciboCreate(BaseModel):
+    pago_id: int = Field(gt=0)
+
+
+class ReciboResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    numero: str
+    pago_id: int
+    nombre: str
+    apellido: str
+    piso: str
+    puerta: str
+    concepto: str
+    importe: Decimal
+    fecha_pago: date
+    metodo_pago: MetodoPago
+    fecha_emision: datetime
