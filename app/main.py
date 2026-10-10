@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app import models
 from app.database import engine
-from app.routers import vecinos, incidencias, pagos, cuotas, morosidad
+from app.routers import vecinos, incidencias, pagos, cuotas, morosidad, recibos
 
 # Crear tablas automáticamente
 models.Base.metadata.create_all(bind=engine)
@@ -18,3 +18,4 @@ app.include_router(incidencias.router)
 app.include_router(pagos.router)
 app.include_router(cuotas.router)
 app.include_router(morosidad.router)
+app.include_router(recibos.router)
