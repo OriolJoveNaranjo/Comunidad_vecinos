@@ -19,5 +19,10 @@ from .schemas import (
     DeudaVencidaResponse,
     MorosidadVecinoResponse,
     ReciboCreate,
-    ReciboResponse
+    ReciboResponse,
+    UsuarioCreate,
+    UsuarioResponse,
+    UsuarioRolUpdate,
+    TokenResponse,
+    CambioRolResponse
 )

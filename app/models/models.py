@@ -178,3 +178,63 @@ class Recibo(Base):
     )
 
     pago = relationship("Pago")
+class Usuario(Base):
+    __tablename__ = "usuarios"
+
+    __table_args__ = (
+        CheckConstraint(
+            "rol IN ('superadmin', 'admin', 'vecino')",
+            name="ck_usuario_rol",
+        ),
+        CheckConstraint(
+            "rol != 'vecino' OR vecino_id IS NOT NULL",
+            name="ck_usuario_vecino_asociado",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(254), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    rol = Column(String(20), nullable=False, default="vecino")
+    activo = Column(Boolean, nullable=False, default=True)
+
+    vecino_id = Column(
+        Integer,
+        ForeignKey("vecinos.id", ondelete="RESTRICT"),
+        unique=True,
+        nullable=True,
+    )
+
+    creado_en = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    vecino = relationship("Vecino")
+class CambioRol(Base):
+    __tablename__ = "cambios_rol"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    usuario_id = Column(
+        Integer,
+        ForeignKey("usuarios.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+
+    realizado_por_id = Column(
+        Integer,
+        ForeignKey("usuarios.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+
+    rol_anterior = Column(String(20), nullable=False)
+    rol_nuevo = Column(String(20), nullable=False)
+
+    creado_en = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )

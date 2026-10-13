@@ -195,3 +195,40 @@ class ReciboResponse(BaseModel):
     fecha_pago: date
     metodo_pago: MetodoPago
     fecha_emision: datetime
+RolUsuario = Literal["superadmin", "admin", "vecino"]
+
+
+class UsuarioCreate(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=12, max_length=128)
+    rol: RolUsuario = "vecino"
+    vecino_id: int | None = Field(default=None, gt=0)
+
+
+class UsuarioResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    rol: RolUsuario
+    activo: bool
+    vecino_id: int | None
+    creado_en: datetime
+
+
+class UsuarioRolUpdate(BaseModel):
+    rol: RolUsuario
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+class CambioRolResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    usuario_id: int
+    realizado_por_id: int
+    rol_anterior: RolUsuario
+    rol_nuevo: RolUsuario
+    creado_en: datetime
